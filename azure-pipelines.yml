@@ -6,29 +6,58 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'windows-latest'
+stages:
+- stage: "BuildStage"
+  jobs:
+  - job: "Buildjob"
+    pool:
+       vmImage: 'windows-latest'
+    variables:
+       solution: '**/*.sln'
+       buildPlatform: 'Any CPU'
+       buildConfiguration: 'Release'
 
-variables:
-  solution: '**/*.sln'
-  buildPlatform: 'Any CPU'
-  buildConfiguration: 'Release'
+    steps:
+      - task: NuGetCommand@2
+        inputs:
+          command: 'restore'
+          restoreSolution: '$(solution)'
+          feedsToUse: 'select'
+      - task: VSBuild@1
+        inputs:
+          solution: '$(solution)'
+          msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+          platform: '$(buildPlatform)'
+          configuration: '$(buildConfiguration)'  
+      - task: PublishPipelineArtifact@1
+        inputs:
+          targetPath: '$(build.artifactstagingdirectory)'
+          artifact: 'drop'
+          publishLocation: 'pipeline'
 
-steps:
-- task: NuGetToolInstaller@1
+- stage: "Deploy to Dev"
+  jobs:
+  - job: "Buildjob"
+    pool:
+       vmImage: 'windows-latest'
+    dependsOn: BuildStage
+    
+    steps:
+    - task: DownloadPipelineArtifact@2
+      inputs:
+        buildType: 'current'
+        artifactName: 'drop'
+        targetPath: '$(Pipeline.Workspace)'
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Visual Studio Enterprise Subscription (6c6e1687-8fcc-4f0a-a261-241bcabce878)'
+        appType: 'webApp'
+        WebAppName: 'demopipeline1'
+        packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
+  
+     
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
+    
 
-- task: VSBuild@1
-  inputs:
-    solution: '$(solution)'
-    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
 
-- task: VSTest@2
-  inputs:
-    platform: '$(buildPlatform)'
-    configuration: '$(buildConfiguration)'
