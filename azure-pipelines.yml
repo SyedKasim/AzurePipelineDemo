@@ -23,6 +23,19 @@ steps:
   inputs:
     solution: '**/*.sln'
     msbuildArchitecture: 'x64'
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Pipeline.Workspace)'
+    artifact: 'drop'
+    publishLocation: 'pipeline'
+
+- task: AzureRmWebAppDeployment@4
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Visual Studio Enterprise Subscription (6c6e1687-8fcc-4f0a-a261-241bcabce878)'
+    appType: 'webApp'
+    WebAppName: 'demopipeline1'
+    packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
 
 - script: |
     echo Add other tasks to build, test, and deploy your project.
