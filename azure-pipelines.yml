@@ -35,7 +35,7 @@ stages:
           artifact: 'drop'
           publishLocation: 'pipeline'
 
-- stage: "Deploy to Dev"
+- stage: "DeploytoDev"
   jobs:
   - job: "Buildjob"
     pool:
