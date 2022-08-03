@@ -40,7 +40,7 @@ stages:
   - job: "Buildjob"
     pool:
        vmImage: 'windows-latest'
-    dependsOn: BuildStage
+    
     
     steps:
     - task: DownloadPipelineArtifact@2
